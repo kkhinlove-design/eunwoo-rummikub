@@ -75,7 +75,7 @@ export default function GamePage({ params }: { params: Promise<{ roomId: string 
       // 방장이 아니면 배분될 때까지 대기
       const interval = setInterval(async () => {
         const { data } = await supabase
-          .from('rooms')
+          .from('rummikub_rooms')
           .select('tile_pool')
           .eq('id', roomId)
           .single();
@@ -94,14 +94,14 @@ export default function GamePage({ params }: { params: Promise<{ roomId: string 
       // 각 플레이어에게 손패 배분
       for (let i = 0; i < roomPlayers.length; i++) {
         await supabase
-          .from('room_players')
+          .from('rummikub_room_players')
           .update({ hand: hands[i] as any })
           .eq('id', roomPlayers[i].id);
       }
 
       // 풀 저장
       await supabase
-        .from('rooms')
+        .from('rummikub_rooms')
         .update({ tile_pool: pool as any, board: [] as any })
         .eq('id', roomId);
 
@@ -110,7 +110,7 @@ export default function GamePage({ params }: { params: Promise<{ roomId: string 
       const firstRp = roomPlayers.find(rp => rp.player_id === firstPlayer);
       const firstHandIdx = roomPlayers.indexOf(firstRp!);
       await supabase
-        .from('turn_snapshots')
+        .from('rummikub_turn_snapshots')
         .insert({
           room_id: roomId,
           player_id: firstPlayer,
@@ -148,7 +148,7 @@ export default function GamePage({ params }: { params: Promise<{ roomId: string 
     // 스냅샷 로드
     (async () => {
       const { data } = await supabase
-        .from('turn_snapshots')
+        .from('rummikub_turn_snapshots')
         .select('*')
         .eq('room_id', roomId)
         .eq('player_id', player.id)
@@ -343,7 +343,7 @@ export default function GamePage({ params }: { params: Promise<{ roomId: string 
 
       // DB 업데이트
       await supabase
-        .from('room_players')
+        .from('rummikub_room_players')
         .update({ hand: newHand as any })
         .eq('room_id', roomId)
         .eq('player_id', player.id);
@@ -355,7 +355,7 @@ export default function GamePage({ params }: { params: Promise<{ roomId: string 
       const nextPlayer = turnOrder[nextIdx];
 
       await supabase
-        .from('rooms')
+        .from('rummikub_rooms')
         .update({
           tile_pool: pool as any,
           current_turn: nextPlayer,
@@ -367,13 +367,13 @@ export default function GamePage({ params }: { params: Promise<{ roomId: string 
       if (nextRp) {
         // 기존 스냅샷 삭제 후 새로 생성
         await supabase
-          .from('turn_snapshots')
+          .from('rummikub_turn_snapshots')
           .delete()
           .eq('room_id', roomId)
           .eq('player_id', nextPlayer);
 
         await supabase
-          .from('turn_snapshots')
+          .from('rummikub_turn_snapshots')
           .insert({
             room_id: roomId,
             player_id: nextPlayer,
@@ -431,7 +431,7 @@ export default function GamePage({ params }: { params: Promise<{ roomId: string 
 
         // 첫 등록 성공 표시
         await supabase
-          .from('room_players')
+          .from('rummikub_room_players')
           .update({ has_melded: true })
           .eq('room_id', roomId)
           .eq('player_id', player.id);
@@ -445,7 +445,7 @@ export default function GamePage({ params }: { params: Promise<{ roomId: string 
 
       // 손패 & 보드 저장
       await supabase
-        .from('room_players')
+        .from('rummikub_room_players')
         .update({ hand: localHand as any })
         .eq('room_id', roomId)
         .eq('player_id', player.id);
@@ -457,7 +457,7 @@ export default function GamePage({ params }: { params: Promise<{ roomId: string 
       const nextPlayer = turnOrder[nextIdx];
 
       await supabase
-        .from('rooms')
+        .from('rummikub_rooms')
         .update({
           board: localBoard as any,
           current_turn: nextPlayer,
@@ -468,13 +468,13 @@ export default function GamePage({ params }: { params: Promise<{ roomId: string 
       const nextRp = roomPlayers.find(rp => rp.player_id === nextPlayer);
       if (nextRp) {
         await supabase
-          .from('turn_snapshots')
+          .from('rummikub_turn_snapshots')
           .delete()
           .eq('room_id', roomId)
           .eq('player_id', nextPlayer);
 
         await supabase
-          .from('turn_snapshots')
+          .from('rummikub_turn_snapshots')
           .insert({
             room_id: roomId,
             player_id: nextPlayer,
@@ -501,12 +501,12 @@ export default function GamePage({ params }: { params: Promise<{ roomId: string 
       const penalty = rp.player_id === player.id ? 0 : calcPenalty(rp.hand);
 
       await supabase
-        .from('room_players')
+        .from('rummikub_room_players')
         .update({ penalty_score: penalty })
         .eq('id', rp.id);
 
       await supabase
-        .from('game_history')
+        .from('rummikub_game_history')
         .insert({
           player_id: rp.player_id,
           room_id: roomId,
@@ -514,19 +514,19 @@ export default function GamePage({ params }: { params: Promise<{ roomId: string 
           is_winner: rp.player_id === player.id,
         });
 
-      // 플레이어 전적 업데이트
+      // 플레이어 루미큐브 전적 업데이트
       const { data: p } = await supabase
         .from('players')
-        .select('games_played, games_won, total_penalty_score')
+        .select('rummikub_games_played, rummikub_games_won, rummikub_total_penalty')
         .eq('id', rp.player_id)
         .single();
       if (p) {
         await supabase
           .from('players')
           .update({
-            games_played: p.games_played + 1,
-            games_won: p.games_won + (rp.player_id === player.id ? 1 : 0),
-            total_penalty_score: p.total_penalty_score + penalty,
+            rummikub_games_played: (p.rummikub_games_played || 0) + 1,
+            rummikub_games_won: (p.rummikub_games_won || 0) + (rp.player_id === player.id ? 1 : 0),
+            rummikub_total_penalty: (p.rummikub_total_penalty || 0) + penalty,
           })
           .eq('id', rp.player_id);
       }
@@ -534,7 +534,7 @@ export default function GamePage({ params }: { params: Promise<{ roomId: string 
 
     // 방 상태 업데이트
     await supabase
-      .from('rooms')
+      .from('rummikub_rooms')
       .update({
         status: 'finished',
         winner_id: player.id,

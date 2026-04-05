@@ -148,7 +148,7 @@ function PlayerStats() {
     const saved = localStorage.getItem('rummikub_player');
     if (saved) {
       const player = JSON.parse(saved);
-      setStats({ games_played: player.games_played, games_won: player.games_won });
+      setStats({ games_played: player.rummikub_games_played || 0, games_won: player.rummikub_games_won || 0 });
     }
   }, []);
 

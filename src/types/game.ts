@@ -23,9 +23,10 @@ export interface Player {
   id: string;
   name: string;
   avatar_emoji: string;
-  games_played: number;
-  games_won: number;
-  total_penalty_score: number;
+  // 루미큐브 전용 전적 (공유 players 테이블의 컬럼)
+  rummikub_games_played: number;
+  rummikub_games_won: number;
+  rummikub_total_penalty: number;
   created_at: string;
 }
 

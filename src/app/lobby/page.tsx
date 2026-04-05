@@ -36,7 +36,7 @@ export default function LobbyPage() {
     const roomChannel = supabase
       .channel(`lobby_room:${waitingRoom.id}`)
       .on('postgres_changes', {
-        event: '*', schema: 'public', table: 'rooms',
+        event: '*', schema: 'public', table: 'rummikub_rooms',
         filter: `id=eq.${waitingRoom.id}`,
       }, (payload) => {
         const updated = payload.new as Room;
@@ -51,7 +51,7 @@ export default function LobbyPage() {
     const playersChannel = supabase
       .channel(`lobby_players:${waitingRoom.id}`)
       .on('postgres_changes', {
-        event: '*', schema: 'public', table: 'room_players',
+        event: '*', schema: 'public', table: 'rummikub_room_players',
         filter: `room_id=eq.${waitingRoom.id}`,
       }, () => {
         fetchWaitingPlayers(waitingRoom.id);
@@ -68,7 +68,7 @@ export default function LobbyPage() {
 
   async function fetchWaitingPlayers(roomId: string) {
     const { data } = await supabase
-      .from('room_players')
+      .from('rummikub_room_players')
       .select('*, player:players(*)')
       .eq('room_id', roomId)
       .order('seat_order');
@@ -84,7 +84,7 @@ export default function LobbyPage() {
     try {
       const code = generateRoomCode();
       const { data: room, error: roomErr } = await supabase
-        .from('rooms')
+        .from('rummikub_rooms')
         .insert({
           code,
           host_id: player.id,
@@ -98,7 +98,7 @@ export default function LobbyPage() {
 
       // 방장 참가
       const { error: joinErr } = await supabase
-        .from('room_players')
+        .from('rummikub_room_players')
         .insert({
           room_id: room.id,
           player_id: player.id,
@@ -128,7 +128,7 @@ export default function LobbyPage() {
 
     try {
       const { data: room, error: roomErr } = await supabase
-        .from('rooms')
+        .from('rummikub_rooms')
         .select('*')
         .eq('code', code)
         .eq('status', 'waiting')
@@ -141,7 +141,7 @@ export default function LobbyPage() {
 
       // 인원 확인
       const { count } = await supabase
-        .from('room_players')
+        .from('rummikub_room_players')
         .select('*', { count: 'exact', head: true })
         .eq('room_id', room.id);
 
@@ -153,7 +153,7 @@ export default function LobbyPage() {
 
       // 이미 참가했는지 확인
       const { data: existing } = await supabase
-        .from('room_players')
+        .from('rummikub_room_players')
         .select('id')
         .eq('room_id', room.id)
         .eq('player_id', player.id)
@@ -161,7 +161,7 @@ export default function LobbyPage() {
 
       if (!existing) {
         const { error: joinErr } = await supabase
-          .from('room_players')
+          .from('rummikub_room_players')
           .insert({
             room_id: room.id,
             player_id: player.id,
@@ -195,7 +195,7 @@ export default function LobbyPage() {
       const turnOrder = waitingPlayers.map(rp => rp.player_id);
 
       const { error: updateErr } = await supabase
-        .from('rooms')
+        .from('rummikub_rooms')
         .update({
           status: 'playing',
           current_turn: turnOrder[0],
@@ -217,7 +217,7 @@ export default function LobbyPage() {
   async function handleLeave() {
     if (!waitingRoom || !player) return;
     await supabase
-      .from('room_players')
+      .from('rummikub_room_players')
       .delete()
       .eq('room_id', waitingRoom.id)
       .eq('player_id', player.id);

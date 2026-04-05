@@ -20,7 +20,7 @@ export function useRoomRealtime(roomId: string | null) {
 
     // 초기 로드
     supabase
-      .from('rooms')
+      .from('rummikub_rooms')
       .select('*')
       .eq('id', roomId)
       .single()
@@ -34,7 +34,7 @@ export function useRoomRealtime(roomId: string | null) {
         {
           event: '*',
           schema: 'public',
-          table: 'rooms',
+          table: 'rummikub_rooms',
           filter: `id=eq.${roomId}`,
         },
         (payload) => {
@@ -60,7 +60,7 @@ export function useRoomPlayersRealtime(roomId: string | null) {
   const fetchPlayers = useCallback(async () => {
     if (!roomId) return;
     const { data } = await supabase
-      .from('room_players')
+      .from('rummikub_room_players')
       .select('*, player:players(*)')
       .eq('room_id', roomId)
       .order('seat_order');
@@ -79,7 +79,7 @@ export function useRoomPlayersRealtime(roomId: string | null) {
         {
           event: '*',
           schema: 'public',
-          table: 'room_players',
+          table: 'rummikub_room_players',
           filter: `room_id=eq.${roomId}`,
         },
         () => {
@@ -109,7 +109,7 @@ export function useMyHandRealtime(roomId: string | null, playerId: string | null
 
     // 초기 로드
     supabase
-      .from('room_players')
+      .from('rummikub_room_players')
       .select('hand')
       .eq('room_id', roomId)
       .eq('player_id', playerId)
@@ -126,7 +126,7 @@ export function useMyHandRealtime(roomId: string | null, playerId: string | null
         {
           event: 'UPDATE',
           schema: 'public',
-          table: 'room_players',
+          table: 'rummikub_room_players',
           filter: `room_id=eq.${roomId}`,
         },
         (payload) => {
