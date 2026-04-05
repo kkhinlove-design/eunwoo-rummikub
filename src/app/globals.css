@@ -1,0 +1,155 @@
+@import "tailwindcss";
+
+:root {
+  --tile-red: #E63946;
+  --tile-blue: #457B9D;
+  --tile-orange: #F4A261;
+  --tile-black: #264653;
+  --tile-joker: #9B5DE5;
+  --board-bg: #2D6A4F;
+  --board-surface: #40916C;
+  --hand-bg: #1B4332;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: linear-gradient(135deg, #1B4332 0%, #2D6A4F 100%);
+  min-height: 100vh;
+  color: white;
+}
+
+/* 타일 기본 스타일 */
+.tile {
+  width: 44px;
+  height: 60px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 18px;
+  background: #FFFDF7;
+  border: 2px solid #e0d8c8;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+  user-select: none;
+}
+
+.tile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.tile.selected {
+  transform: translateY(-6px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+  border-color: #FFD700;
+}
+
+.tile.dragging {
+  opacity: 0.5;
+}
+
+/* 세트 영역 */
+.meld-set {
+  display: flex;
+  gap: 2px;
+  padding: 6px 8px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 8px;
+  border: 2px dashed rgba(255,255,255,0.2);
+  min-height: 72px;
+  align-items: center;
+}
+
+.meld-set.valid {
+  border-color: rgba(76, 175, 80, 0.6);
+  background: rgba(76, 175, 80, 0.1);
+}
+
+.meld-set.invalid {
+  border-color: rgba(244, 67, 54, 0.6);
+  background: rgba(244, 67, 54, 0.1);
+}
+
+/* 드롭 타겟 */
+.drop-target {
+  border: 2px dashed rgba(255, 215, 0, 0.5);
+  background: rgba(255, 215, 0, 0.05);
+  min-height: 72px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.drop-target.active {
+  border-color: #FFD700;
+  background: rgba(255, 215, 0, 0.15);
+}
+
+/* 버튼 */
+.btn {
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 15px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: #1B4332;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #E63946, #C1121F);
+  color: white;
+}
+
+.btn-secondary {
+  background: rgba(255,255,255,0.15);
+  color: white;
+  border: 1px solid rgba(255,255,255,0.3);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: rgba(255,255,255,0.25);
+}
+
+/* 카드 스타일 */
+.card {
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 16px;
+  padding: 24px;
+}
+
+/* 스크롤바 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.2);
+  border-radius: 3px;
+}
