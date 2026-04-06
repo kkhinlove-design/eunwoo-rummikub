@@ -11,6 +11,7 @@ export default function HomePage() {
   const [emoji, setEmoji] = useState('😊');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [existingPlayers, setExistingPlayers] = useState<any[]>([]);
 
   // 기존 플레이어 정보 복원
   useEffect(() => {
@@ -21,6 +22,24 @@ export default function HomePage() {
       setEmoji(player.avatar_emoji || '😊');
     }
   }, []);
+
+  // 공유 players 테이블에서 기존 플레이어 목록 불러오기
+  useEffect(() => {
+    const fetchPlayers = async () => {
+      const { data } = await supabase
+        .from('players')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (data) setExistingPlayers(data);
+    };
+    fetchPlayers();
+  }, []);
+
+  // 기존 플레이어 선택
+  const handleSelectPlayer = (player: any) => {
+    setName(player.name);
+    setEmoji(player.avatar_emoji || '😊');
+  };
 
   const handleStart = async () => {
     const trimmed = name.trim();
@@ -123,6 +142,29 @@ export default function HomePage() {
 
         {error && (
           <p className="text-red-400 text-sm mb-3">{error}</p>
+        )}
+
+        {/* 기존 플레이어 빠른 선택 */}
+        {existingPlayers.length > 0 && (
+          <div className="mb-4">
+            <p className="text-sm text-white/70 mb-2">기존 플레이어</p>
+            <div className="flex flex-wrap gap-2 justify-center">
+              {existingPlayers.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => handleSelectPlayer(p)}
+                  className={`flex items-center gap-1 px-3 py-2 rounded-xl text-sm transition-all ${
+                    name === p.name
+                      ? 'bg-yellow-400/20 ring-2 ring-yellow-400 text-white'
+                      : 'bg-white/10 text-white/70 hover:bg-white/20'
+                  }`}
+                >
+                  <span className="text-lg">{p.avatar_emoji || '😊'}</span>
+                  <span>{p.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         )}
 
         {/* 시작 버튼 */}
