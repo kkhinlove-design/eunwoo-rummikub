@@ -35,10 +35,11 @@ export default function HomePage() {
     fetchPlayers();
   }, []);
 
-  // 기존 플레이어 선택
-  const handleSelectPlayer = (player: any) => {
-    setName(player.name);
-    setEmoji(player.avatar_emoji || '😊');
+  // 기존 플레이어 바로 접속
+  const handleQuickLogin = async (player: any) => {
+    setLoading(true);
+    localStorage.setItem('rummikub_player', JSON.stringify(player));
+    router.push('/lobby');
   };
 
   const handleStart = async () => {
@@ -93,7 +94,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <div className="min-h-screen flex flex-col items-center justify-start py-8 px-4 gap-0">
       <div className="card w-full max-w-md text-center">
         {/* 로고 */}
         <div className="mb-6">
@@ -144,41 +145,51 @@ export default function HomePage() {
           <p className="text-red-400 text-sm mb-3">{error}</p>
         )}
 
-        {/* 기존 플레이어 빠른 선택 */}
-        {existingPlayers.length > 0 && (
-          <div className="mb-4">
-            <p className="text-sm text-white/70 mb-2">기존 플레이어</p>
-            <div className="flex flex-wrap gap-2 justify-center">
-              {existingPlayers.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => handleSelectPlayer(p)}
-                  className={`flex items-center gap-1 px-3 py-2 rounded-xl text-sm transition-all ${
-                    name === p.name
-                      ? 'bg-yellow-400/20 ring-2 ring-yellow-400 text-white'
-                      : 'bg-white/10 text-white/70 hover:bg-white/20'
-                  }`}
-                >
-                  <span className="text-lg">{p.avatar_emoji || '😊'}</span>
-                  <span>{p.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* 시작 버튼 */}
         <button
           onClick={handleStart}
           disabled={loading || !name.trim()}
           className="btn btn-primary w-full text-lg py-3"
         >
-          {loading ? '접속 중...' : '시작하기 🎮'}
+          {loading ? '접속 중...' : '새로 시작하기!'}
         </button>
 
         {/* 전적 표시 (저장된 플레이어가 있을 때) */}
         <PlayerStats />
       </div>
+
+      {/* 등록된 친구들 */}
+      {existingPlayers.length > 0 && (
+        <div className="card w-full max-w-md mt-6">
+          <h2 className="text-xl font-bold text-center mb-1">
+            등록된 친구들 ({existingPlayers.length}명)
+          </h2>
+          <p className="text-sm text-white/50 text-center mb-4">
+            이름을 눌러서 바로 접속해요!
+          </p>
+          <div className="space-y-3">
+            {existingPlayers.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => handleQuickLogin(p)}
+                disabled={loading}
+                className="w-full flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/15 transition-all text-left"
+              >
+                <span className="text-3xl">{p.avatar_emoji || '😊'}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-white">{p.name}</div>
+                  <div className="text-xs text-white/50">
+                    {(p.rummikub_games_played || 0) > 0
+                      ? `${p.rummikub_games_played}게임 · ${p.rummikub_games_won || 0}승`
+                      : '첫 게임 도전!'}
+                  </div>
+                </div>
+                <span className="text-white/30 text-sm">{'>'}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
