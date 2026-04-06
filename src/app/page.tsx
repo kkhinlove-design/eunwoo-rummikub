@@ -26,10 +26,12 @@ export default function HomePage() {
   // 공유 players 테이블에서 기존 플레이어 목록 불러오기
   useEffect(() => {
     const fetchPlayers = async () => {
-      const { data } = await supabase
+      const { data, error: fetchErr } = await supabase
         .from('players')
         .select('*')
         .order('created_at', { ascending: false });
+      console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
+      console.log('Players fetch result:', { data, error: fetchErr });
       if (data) setExistingPlayers(data);
     };
     fetchPlayers();
