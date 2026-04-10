@@ -148,6 +148,9 @@ export default function GamePage({ params }: { params: Promise<{ roomId: string 
     // 현재 보드를 로컬에 복사
     setLocalBoard(room.board || []);
 
+    // 이전 턴의 스냅샷 초기화 (새 스냅샷 로드 전까지 변경 없음으로 취급)
+    setSnapshot(null);
+
     // 스냅샷 로드
     (async () => {
       const { data } = await supabase
@@ -165,10 +168,10 @@ export default function GamePage({ params }: { params: Promise<{ roomId: string 
     setSelectedTile(null);
   }, [isMyTurn, room?.current_turn]);
 
-  // 보드 변경 여부
+  // 보드 변경 여부 (스냅샷 로딩 중이면 변경 없음으로 취급 → 뽑기 표시)
   const hasBoardChanged = snapshot
     ? isBoardDifferent(localBoard, snapshot.snapshot_board)
-    : localBoard.length > 0;
+    : false;
 
   // 턴 종료 가능 여부
   const canEndTurn = isMyTurn && (
