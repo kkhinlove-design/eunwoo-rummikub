@@ -87,6 +87,9 @@ export default function GamePage({ params }: { params: Promise<{ roomId: string 
       return () => clearInterval(interval);
     }
 
+    // roomPlayers가 아직 로드 안 됐으면 대기 (다음 렌더에서 재시도)
+    if (roomPlayers.length < 2) return;
+
     // 방장: 타일 배분 실행
     (async () => {
       const { hands, pool } = distributeInitialTiles(roomPlayers.length);
