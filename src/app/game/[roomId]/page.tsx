@@ -166,7 +166,16 @@ export default function GamePage({ params }: { params: Promise<{ roomId: string 
 
     setMessage('');
     setSelectedTile(null);
+    setDragTile(null);
   }, [isMyTurn, room?.current_turn]);
+
+  // 내 턴이 아닐 때 드래그/선택 상태 초기화
+  useEffect(() => {
+    if (!isMyTurn) {
+      setSelectedTile(null);
+      setDragTile(null);
+    }
+  }, [isMyTurn]);
 
   // 보드 변경 여부 (스냅샷 로딩 중이면 변경 없음으로 취급 → 뽑기 표시)
   const hasBoardChanged = snapshot
@@ -371,22 +380,16 @@ export default function GamePage({ params }: { params: Promise<{ roomId: string 
       // 다음 플레이어 스냅샷
       const nextRp = roomPlayers.find(rp => rp.player_id === nextPlayer);
       if (nextRp) {
-        // 기존 스냅샷 삭제 후 새로 생성
+        // 스냅샷 upsert (unique 제약: room_id + player_id)
         await supabase
           .from('rummikub_turn_snapshots')
-          .delete()
-          .eq('room_id', roomId)
-          .eq('player_id', nextPlayer);
-
-        await supabase
-          .from('rummikub_turn_snapshots')
-          .insert({
+          .upsert({
             room_id: roomId,
             player_id: nextPlayer,
             snapshot_board: localBoard as any,
             snapshot_hand: nextRp.hand as any,
             snapshot_pool: pool as any,
-          });
+          }, { onConflict: 'room_id,player_id' });
       }
 
       setLocalHand(newHand);
@@ -421,8 +424,13 @@ export default function GamePage({ params }: { params: Promise<{ roomId: string 
         return;
       }
 
-      // 첫 등록 검사
-      if (!myRoomPlayer?.has_melded && snapshot) {
+      // 첫 등록 검사 (스냅샷 없으면 검증 불가 → 차단)
+      if (!myRoomPlayer?.has_melded) {
+        if (!snapshot) {
+          setMessage('스냅샷을 로딩 중입니다. 잠시 후 다시 시도해주세요.');
+          setLoading(false);
+          return;
+        }
         const tilesFromHand = findTilesPlayedFromHand(
           localHand, snapshot.snapshot_hand
         );
@@ -501,6 +509,13 @@ export default function GamePage({ params }: { params: Promise<{ roomId: string 
   // 승리 처리
   async function handleWin() {
     if (!room || !player) return;
+
+    // 승리자 빈 손패 + 보드 저장
+    await supabase
+      .from('rummikub_room_players')
+      .update({ hand: [] as any })
+      .eq('room_id', roomId)
+      .eq('player_id', player.id);
 
     // 벌점 계산 & 기록
     for (const rp of roomPlayers) {
@@ -673,6 +688,7 @@ export default function GamePage({ params }: { params: Promise<{ roomId: string 
           canEndTurn={canEndTurn}
           hasBoardChanged={hasBoardChanged}
           poolCount={room.tile_pool?.length || 0}
+          turnTimer={room.turn_timer || 0}
           onDraw={handleDraw}
           onUndo={handleUndo}
           onEndTurn={handleEndTurn}
