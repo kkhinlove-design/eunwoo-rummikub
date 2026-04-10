@@ -625,7 +625,7 @@ export default function GamePage({ params }: { params: Promise<{ roomId: string 
   }
 
   // 타일 배분 대기
-  if (!initialized || (!room.tile_pool || room.tile_pool.length === 0)) {
+  if (!initialized) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
