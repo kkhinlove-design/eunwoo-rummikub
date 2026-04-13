@@ -290,53 +290,60 @@ export default function GamePage({ params }: { params: Promise<{ roomId: string 
   }, []);
 
   const handleDropToSet = useCallback((targetSetIdx: number) => {
-    if (!dragTile) return;
-    // dragTile을 selectedTile로 설정하고 moveTileToSet 호출
+    // 모바일 탭 이동: 드래그가 없으면 selectedTile을 사용
+    const source = dragTile ?? selectedTile;
+    if (!source) return;
+
     const newBoard = deepCopyBoard(localBoard);
     let newHand = deepCopyHand(localHand);
 
-    if (dragTile.from === 'hand') {
-      newHand = newHand.filter(t => t.id !== dragTile.tile.id);
-    } else if (dragTile.from === 'board' && dragTile.setIdx !== undefined) {
-      newBoard[dragTile.setIdx] = newBoard[dragTile.setIdx].filter(
-        t => t.id !== dragTile.tile.id
+    if (source.from === 'hand') {
+      newHand = newHand.filter(t => t.id !== source.tile.id);
+    } else if (source.from === 'board' && source.setIdx !== undefined) {
+      newBoard[source.setIdx] = newBoard[source.setIdx].filter(
+        t => t.id !== source.tile.id
       );
-      if (newBoard[dragTile.setIdx].length === 0) {
-        newBoard.splice(dragTile.setIdx, 1);
-        if (targetSetIdx > dragTile.setIdx) targetSetIdx--;
+      if (newBoard[source.setIdx].length === 0) {
+        newBoard.splice(source.setIdx, 1);
+        if (targetSetIdx > source.setIdx) targetSetIdx--;
       }
     }
 
     if (targetSetIdx < newBoard.length) {
-      newBoard[targetSetIdx].push(dragTile.tile);
+      newBoard[targetSetIdx].push(source.tile);
     }
 
     setLocalBoard(newBoard);
     setLocalHand(newHand);
     setDragTile(null);
-  }, [dragTile, localBoard, localHand]);
+    setSelectedTile(null);
+  }, [dragTile, selectedTile, localBoard, localHand]);
 
   const handleDropToNewSet = useCallback(() => {
-    if (!dragTile) return;
+    // 모바일 탭 이동: 드래그가 없으면 selectedTile을 사용
+    const source = dragTile ?? selectedTile;
+    if (!source) return;
+
     const newBoard = deepCopyBoard(localBoard);
     let newHand = deepCopyHand(localHand);
 
-    if (dragTile.from === 'hand') {
-      newHand = newHand.filter(t => t.id !== dragTile.tile.id);
-    } else if (dragTile.from === 'board' && dragTile.setIdx !== undefined) {
-      newBoard[dragTile.setIdx] = newBoard[dragTile.setIdx].filter(
-        t => t.id !== dragTile.tile.id
+    if (source.from === 'hand') {
+      newHand = newHand.filter(t => t.id !== source.tile.id);
+    } else if (source.from === 'board' && source.setIdx !== undefined) {
+      newBoard[source.setIdx] = newBoard[source.setIdx].filter(
+        t => t.id !== source.tile.id
       );
-      if (newBoard[dragTile.setIdx].length === 0) {
-        newBoard.splice(dragTile.setIdx, 1);
+      if (newBoard[source.setIdx].length === 0) {
+        newBoard.splice(source.setIdx, 1);
       }
     }
 
-    newBoard.push([dragTile.tile]);
+    newBoard.push([source.tile]);
     setLocalBoard(newBoard);
     setLocalHand(newHand);
     setDragTile(null);
-  }, [dragTile, localBoard, localHand]);
+    setSelectedTile(null);
+  }, [dragTile, selectedTile, localBoard, localHand]);
 
   /* ═══ 게임 액션 ═══ */
 
