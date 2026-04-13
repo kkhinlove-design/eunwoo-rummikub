@@ -34,7 +34,7 @@ export default function Tile({
       data-tile-id={tile.id}
     >
       {tile.isJoker ? (
-        <span className="text-base">🃏</span>
+        <span className="text-3xl leading-none">🃏</span>
       ) : (
         <span>{tile.number}</span>
       )}
