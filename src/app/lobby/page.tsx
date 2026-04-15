@@ -309,6 +309,19 @@ export default function LobbyPage() {
           </div>
         </div>
 
+        {/* AI 대결 바로가기 */}
+        <button
+          onClick={() => router.push('/play-ai')}
+          className="w-full flex items-center gap-3 p-3 mb-4 rounded-xl bg-gradient-to-r from-pink-500/20 to-purple-500/20 hover:from-pink-500/30 hover:to-purple-500/30 transition-all ring-1 ring-pink-400/30"
+        >
+          <span className="text-3xl">🤖</span>
+          <div className="flex-1 text-left">
+            <div className="font-bold">AI와 1:1 대결</div>
+            <div className="text-xs text-white/60">혼자서도 바로 플레이!</div>
+          </div>
+          <span className="text-white/40">{'>'}</span>
+        </button>
+
         {/* 탭 */}
         <div className="flex gap-2 mb-6">
           <button
