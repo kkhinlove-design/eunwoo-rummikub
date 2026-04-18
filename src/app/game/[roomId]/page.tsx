@@ -48,6 +48,8 @@ export default function GamePage({ params }: { params: Promise<{ roomId: string 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [initialized, setInitialized] = useState(false);
+  const [distributionError, setDistributionError] = useState('');
+  const [distributeTrigger, setDistributeTrigger] = useState(0);
 
   const isMyTurn = room?.current_turn === player?.id;
   const myRoomPlayer = roomPlayers.find(rp => rp.player_id === player?.id);
@@ -90,41 +92,69 @@ export default function GamePage({ params }: { params: Promise<{ roomId: string 
     // roomPlayers가 아직 로드 안 됐으면 대기 (다음 렌더에서 재시도)
     if (roomPlayers.length < 2) return;
 
-    // 방장: 타일 배분 실행
+    // 방장: 타일 배분 실행 (idempotent + 오류 복구)
+    let cancelled = false;
     (async () => {
-      const { hands, pool } = distributeInitialTiles(roomPlayers.length);
+      try {
+        setDistributionError('');
+        const { hands, pool } = distributeInitialTiles(roomPlayers.length);
 
-      // 각 플레이어에게 손패 배분
-      for (let i = 0; i < roomPlayers.length; i++) {
-        await supabase
-          .from('rummikub_room_players')
-          .update({ hand: hands[i] as any })
-          .eq('id', roomPlayers[i].id);
+        // 빈 손패인 참가자에게만 update (재시도 시 중복 배분 방지)
+        for (let i = 0; i < roomPlayers.length; i++) {
+          const existing = roomPlayers[i].hand;
+          if (Array.isArray(existing) && existing.length > 0) continue;
+          const { error: handErr } = await supabase
+            .from('rummikub_room_players')
+            .update({ hand: hands[i] as any })
+            .eq('id', roomPlayers[i].id);
+          if (handErr) throw handErr;
+        }
+
+        if (cancelled) return;
+
+        // 풀 저장
+        const { error: poolErr } = await supabase
+          .from('rummikub_rooms')
+          .update({ tile_pool: pool as any, board: [] as any })
+          .eq('id', roomId);
+        if (poolErr) throw poolErr;
+
+        // 첫 턴 스냅샷 (이미 있으면 스킵)
+        const firstPlayer = room.turn_order[0];
+        const firstRp = roomPlayers.find(rp => rp.player_id === firstPlayer);
+        if (firstRp) {
+          const firstHandIdx = roomPlayers.indexOf(firstRp);
+          const { data: existingSnap } = await supabase
+            .from('rummikub_turn_snapshots')
+            .select('id')
+            .eq('room_id', roomId)
+            .eq('player_id', firstPlayer)
+            .limit(1)
+            .maybeSingle();
+          if (!existingSnap) {
+            const { error: snapErr } = await supabase
+              .from('rummikub_turn_snapshots')
+              .insert({
+                room_id: roomId,
+                player_id: firstPlayer,
+                snapshot_board: [] as any,
+                snapshot_hand: hands[firstHandIdx] as any,
+                snapshot_pool: pool as any,
+              });
+            if (snapErr) throw snapErr;
+          }
+        }
+
+        if (!cancelled) setInitialized(true);
+      } catch (err: any) {
+        if (!cancelled) {
+          setDistributionError(err?.message || '타일 배분 중 오류가 발생했습니다');
+        }
       }
-
-      // 풀 저장
-      await supabase
-        .from('rummikub_rooms')
-        .update({ tile_pool: pool as any, board: [] as any })
-        .eq('id', roomId);
-
-      // 첫 턴 스냅샷
-      const firstPlayer = room.turn_order[0];
-      const firstRp = roomPlayers.find(rp => rp.player_id === firstPlayer);
-      const firstHandIdx = roomPlayers.indexOf(firstRp!);
-      await supabase
-        .from('rummikub_turn_snapshots')
-        .insert({
-          room_id: roomId,
-          player_id: firstPlayer,
-          snapshot_board: [] as any,
-          snapshot_hand: hands[firstHandIdx] as any,
-          snapshot_pool: pool as any,
-        });
-
-      setInitialized(true);
     })();
-  }, [room, player, roomPlayers, roomId, initialized]);
+
+    return () => { cancelled = true; };
+  }, [room, player, roomPlayers, roomId, initialized, distributeTrigger]);
 
   // 서버 보드 → 로컬 보드 동기화 (상대 턴일 때)
   useEffect(() => {
@@ -651,11 +681,39 @@ export default function GamePage({ params }: { params: Promise<{ roomId: string 
 
   // 타일 배분 대기
   if (!initialized) {
+    const isHost = room.host_id === player.id;
+    const waitingForPlayers = isHost && roomPlayers.length < 2;
+
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="text-center max-w-sm">
           <div className="text-4xl mb-4 animate-bounce">🎲</div>
-          <div className="text-white/60">타일을 섞는 중...</div>
+          {distributionError ? (
+            <>
+              <div className="text-red-400 mb-4 text-sm">{distributionError}</div>
+              {isHost && (
+                <button
+                  onClick={() => {
+                    setDistributionError('');
+                    setDistributeTrigger(t => t + 1);
+                  }}
+                  className="btn btn-primary"
+                >
+                  다시 시도
+                </button>
+              )}
+            </>
+          ) : waitingForPlayers ? (
+            <div className="text-white/60">참가자 정보를 불러오는 중...</div>
+          ) : (
+            <div className="text-white/60">타일을 섞는 중...</div>
+          )}
+          <button
+            onClick={() => router.push('/lobby')}
+            className="block mx-auto mt-6 text-sm text-white/40 hover:text-white/60"
+          >
+            로비로 돌아가기
+          </button>
         </div>
       </div>
     );
